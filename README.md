@@ -1,6 +1,6 @@
-# ⚡ TSLA Professional Trading Dashboard
+# ⚡ Professional Stock Trading Dashboard
 
-A comprehensive Tesla stock analysis dashboard built with Streamlit, featuring TradingView-style charts, AI-powered analysis, and interactive replay functionality.
+A comprehensive stock analysis dashboard built with Streamlit, featuring TradingView-style charts, AI-powered analysis using Groq, and interactive chart replay functionality.
 
 ## ✨ Features
 
@@ -12,7 +12,7 @@ A comprehensive Tesla stock analysis dashboard built with Streamlit, featuring T
 - **Real-time filtering** and responsive design
 
 ### 🤖 AI-Powered Analysis
-- **Gemini AI integration** for intelligent data analysis
+- **Groq AI integration** for intelligent data analysis
 - **Natural language queries** about your stock data
 - **Pre-built sample questions** for quick insights
 - **Chat history** to track your analysis sessions
@@ -39,38 +39,47 @@ A comprehensive Tesla stock analysis dashboard built with Streamlit, featuring T
 ### Setup Instructions
 
 1. **Clone or download the project files**
-   ```bash
-   # If using git
-   git clone <repository-url>
-   cd tsla-dashboard
-   
-   # Or download and extract the files
-   ```
+    ```bash
+    # If using git
+    git clone <repository-url>
+    cd trading_dashboard
+    
+    # Or download and extract the files
+    ```
 
 2. **Install required packages**
-   ```bash
-   pip install -r requirements.txt
-   ```
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-3. **Configure Gemini AI (Required for AI features)**
-   - Get your Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
-   - Replace the hardcoded API key in `eg.py` line 289:
-   ```python
-   api_key = "YOUR_ACTUAL_GEMINI_API_KEY_HERE"
-   ```
+3. **Configure API Keys (Required for data and AI features)**
+    - Get your Groq API key from [Groq Console](https://console.groq.com/)
+    - Get your Alpha Vantage API key from [Alpha Vantage](https://www.alphavantage.co/support/#api-key)
+    - Replace the placeholders in `.env` file:
+    ```
+    GROQ_API_KEY=YOUR_ACTUAL_GROQ_API_KEY
+    ALPHAVANTAGE_API_KEY=YOUR_ACTUAL_ALPHAVANTAGE_API_KEY
+    ```
 
 4. **Run the application**
-   ```bash
-   streamlit run eg.py
-   ```
+    ```bash
+    streamlit run eg.py
+    ```
 
 5. **Access the dashboard**
-   - Open your browser and navigate to `http://localhost:8501`
+    - Open your browser and navigate to `http://localhost:8501`
 
-## 📁 Data Format
+## 📁 Data Sources
 
-### CSV File Structure
-Your TSLA data CSV should contain the following columns:
+The dashboard supports two data sources:
+
+### 1. Alpha Vantage API
+- Enter any stock symbol (e.g., TSLA, AAPL, GOOGL, MSFT)
+- Fetches daily time series data automatically
+- Requires `ALPHAVANTAGE_API_KEY` in `.env`
+
+### 2. CSV Upload
+Upload your own stock data CSV file with the following columns:
 
 | Column | Type | Description | Required |
 |--------|------|-------------|----------|
@@ -84,17 +93,20 @@ Your TSLA data CSV should contain the following columns:
 | Support | list/string | Support levels (e.g., "[180.5, 175.2]") | ⚠️ Optional |
 | Resistance | list/string | Resistance levels (e.g., "[220.8, 225.4]") | ⚠️ Optional |
 
-### Sample Data Row
+### Sample CSV Data
 ```csv
 Date,Open,High,Low,Close,Volume,direction,Support,Resistance
 2024-01-15,195.50,198.75,192.30,196.80,12500000,LONG,"[185.2, 180.5]","[205.8, 210.4]"
 ```
 
+### Bundled Data
+A sample `TSLA_data.csv` is included in the `data/` folder for testing.
+
 ## 🎯 Usage Guide
 
 ### 1. Loading Data
-- **Upload CSV**: Use the sidebar file uploader to load your TSLA data
-- **Demo Mode**: Run without uploading to see sample data
+- **Alpha Vantage API**: Select "Alpha Vantage API" in the sidebar, enter a stock symbol, and click "Fetch Data"
+- **CSV Upload**: Select "Upload CSV" in the sidebar and upload your stock data file
 - **Data Validation**: The app automatically validates required columns
 
 ### 2. Chart Analysis
@@ -110,9 +122,9 @@ Date,Open,High,Low,Close,Volume,direction,Support,Resistance
 - **Custom Queries**: Type your own questions about the data
 - **Chat History**: Review previous AI responses
 - **Example Questions**:
-  - "How many days in 2023 was TSLA bullish?"
+  - "How many bullish days were in this period?"
   - "What was the highest closing price and when did it occur?"
-  - "Which month had the most volatile price movements?"
+  - "How many LONG vs SHORT signals were generated?"
 
 ### 4. Chart Replay
 - **Speed Control**: Adjust replay speed from 0.5x to 10x
@@ -124,15 +136,29 @@ Date,Open,High,Low,Close,Volume,direction,Support,Resistance
 ### Architecture
 - **Frontend**: Streamlit with custom CSS styling
 - **Charts**: streamlit-lightweight-charts for TradingView-style visualization
-- **AI Engine**: Google Gemini AI for natural language analysis
+- **AI Engine**: Groq AI (llama-3.1-8b-instant) for natural language analysis
+- **Data Sources**: Alpha Vantage API or local CSV files
 - **Data Processing**: Pandas and NumPy for data manipulation
 
 ### Key Components
 - **TSLADashboard Class**: Main application logic
 - **Chart Generation**: Dynamic candlestick chart creation
 - **Data Filtering**: Time-based data filtering system
-- **AI Integration**: Gemini AI query processing
+- **AI Integration**: Groq AI query processing
 - **State Management**: Streamlit session state for replay functionality
+
+### Project Structure
+```
+trading_dashboard/
+├── eg.py                 # Main Streamlit application
+├── requirements.txt      # Python dependencies
+├── .env                  # API keys (not committed)
+├── .gitignore           # Git ignore rules
+├── data/
+│   └── TSLA_data.csv    # Sample TSLA data
+├── test.py              # Alpha Vantage API test script
+└── README.md            # This file
+```
 
 ## 🔧 Customization
 
@@ -152,12 +178,9 @@ The dashboard uses a professional dark theme with TradingView-inspired colors:
 ## ⚠️ Important Notes
 
 ### Security
-- **API Key**: Never commit your Gemini API key to version control
-- **Environment Variables**: Consider using environment variables for API keys:
-  ```python
-  import os
-  api_key = os.getenv('GEMINI_API_KEY')
-  ```
+- **API Keys**: Never commit your API keys to version control
+- **Environment Variables**: API keys are loaded from `.env` file
+- **Git Ignore**: `.env` is included in `.gitignore` to prevent accidental commits
 
 ### Performance
 - **Large Datasets**: Performance may vary with very large datasets (>10K rows)
@@ -165,8 +188,8 @@ The dashboard uses a professional dark theme with TradingView-inspired colors:
 - **Memory Usage**: Monitor memory usage with large CSV files
 
 ### Limitations
-- **Data Dependencies**: Requires properly formatted CSV data
-- **AI Rate Limits**: Gemini AI has usage limits
+- **Data Dependencies**: Alpha Vantage free tier has API call limits
+- **AI Rate Limits**: Groq AI has usage limits based on your plan
 - **Browser Compatibility**: Best viewed in modern browsers (Chrome, Firefox, Safari)
 
 ## 🐛 Troubleshooting
@@ -174,25 +197,33 @@ The dashboard uses a professional dark theme with TradingView-inspired colors:
 ### Common Issues
 
 1. **"No module named 'streamlit'"**
-   ```bash
-   pip install streamlit
-   ```
+    ```bash
+    pip install streamlit
+    ```
 
 2. **"API key error"**
-   - Verify your Gemini API key is correct
-   - Check API key permissions and quotas
+    - Verify your Groq API key is correct
+    - Check API key permissions and quotas
+    - Ensure `.env` file is in the project root
 
 3. **"CSV format error"**
-   - Ensure your CSV has the required columns
-   - Check date format (YYYY-MM-DD)
+    - Ensure your CSV has the required columns: Date, Open, High, Low, Close, Volume, direction
+    - Check date format (YYYY-MM-DD)
+    - Ensure column names match exactly (case-sensitive)
 
-4. **Chart not displaying**
-   - Check browser console for JavaScript errors
-   - Try refreshing the page
+4. **"Alpha Vantage API error"**
+    - Verify your Alpha Vantage API key is correct
+    - Check API call frequency limits (free tier: 25 calls/day, 5 calls/minute)
+    - Ensure stock symbol is valid
+
+5. **Chart not displaying**
+    - Check browser console for JavaScript errors
+    - Try refreshing the page
 
 ### Getting Help
 - Check the Streamlit documentation: https://docs.streamlit.io/
-- Gemini AI documentation: https://ai.google.dev/docs
+- Groq AI documentation: https://console.groq.com/docs
+- Alpha Vantage documentation: https://www.alphavantage.co/documentation/
 - Create an issue in the project repository
 
 ## 📜 License
@@ -205,4 +236,4 @@ Feel free to submit issues, feature requests, or pull requests to improve the da
 
 ---
 
-**Happy Trading! 📈⚡** #
+**Happy Trading! 📈⚡**

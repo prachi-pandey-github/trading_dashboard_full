@@ -4,15 +4,20 @@ import numpy as np
 import json
 import ast
 from datetime import datetime, timedelta
-import google.generativeai as genai
+from groq import Groq
 from typing import List, Dict, Any
 import os
+import requests
 from streamlit_lightweight_charts import renderLightweightCharts
 import time  # Added for replay feature
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Configure page
 st.set_page_config(
-page_title="TSLA Stock Analysis Dashboard",
+page_title="Stock Analysis Dashboard",
 page_icon="📈",
 layout="wide",
 initial_sidebar_state="expanded"
@@ -248,25 +253,91 @@ if 'replay_index' not in st.session_state:
 class TSLADashboard:
     def __init__(self):
         self.data = None
-        self.genai_client = None
+        self.groq_client = None
+        self.symbol = None
         
-    def setup_gemini(self):
-        """Setup Gemini AI client"""
+    def setup_groq(self):
+        """Setup Groq AI client"""
         try:
-            
-            api_key = (st.secrets["GEMINI_API_KEY"])
-            
-            genai.configure(api_key=api_key)
-            self.genai_client = genai.GenerativeModel('gemini-2.0-flash-thinking-exp-01-21')
+            api_key = os.getenv("GROQ_API_KEY")
+            if not api_key:
+                st.error("GROQ_API_KEY not found in .env file.")
+                return False
+            self.groq_client = Groq(api_key=api_key)
             return True
         except Exception as e:
-            st.error(f"Error setting up Gemini AI: {str(e)}")
+            st.error(f"Error setting up Groq AI: {str(e)}")
             return False
     
-    def load_data(self, uploaded_file):
-        """Load and process TSLA data"""
+    def fetch_data_from_alphavantage(self, symbol, api_key):
+        """Fetch stock data from Alpha Vantage API"""
         try:
-            if uploaded_file is not None:
+            url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&outputsize=compact&apikey={api_key}'
+            
+            response = requests.get(url)
+            data = response.json()
+            
+            if 'Error Message' in data:
+                st.error(f"API Error: {data['Error Message']}")
+                return None
+            
+            if 'Information' in data:
+                st.error(f"API Information: {data['Information']}")
+                return None
+            
+            if 'Note' in data:
+                st.warning("API call frequency limit reached. Please wait a minute before trying again.")
+                return None
+            
+            if 'Time Series (Daily)' not in data:
+                st.error(f"No data found for the given symbol. The API response was: {data}")
+                return None
+            
+            time_series = data['Time Series (Daily)']
+            
+            # Convert to DataFrame
+            df_data = []
+            for date_str, values in time_series.items():
+                df_data.append({
+                    'Date': pd.to_datetime(date_str),
+                    'Open': float(values['1. open']),
+                    'High': float(values['2. high']),
+                    'Low': float(values['3. low']),
+                    'Close': float(values['4. close']),
+                    'Volume': int(values['5. volume']),
+                    'direction': 'N',  # Default neutral direction
+                    'Support': [],
+                    'Resistance': []
+                })
+            
+            df = pd.DataFrame(df_data)
+            df = df.sort_values('Date').reset_index(drop=True)
+            
+            # Add technical analysis (simple direction logic)
+            for i in range(1, len(df)):
+                if df.loc[i, 'Close'] > df.loc[i-1, 'Close']:
+                    df.loc[i, 'direction'] = 'LONG'
+                elif df.loc[i, 'Close'] < df.loc[i-1, 'Close']:
+                    df.loc[i, 'direction'] = 'SHORT'
+                else:
+                    df.loc[i, 'direction'] = 'N'
+            
+            return df
+            
+        except Exception as e:
+            st.error(f"Error fetching data from Alpha Vantage: {str(e)}")
+            return None
+    
+    def load_data(self, symbol=None, api_key=None, uploaded_file=None):
+        """Load and process stock data"""
+        try:
+            if symbol and api_key:
+                # Fetch from Alpha Vantage API
+                df = self.fetch_data_from_alphavantage(symbol, api_key)
+                if df is None:
+                    return None
+                self.symbol = symbol
+            elif uploaded_file is not None:
                 df = pd.read_csv(uploaded_file)
                 
                 # Ensure Date column exists and is datetime
@@ -533,14 +604,15 @@ class TSLADashboard:
         return summary
     
     def query_data_with_ai(self, question):
-        """Query data using Gemini AI"""
+        """Query data using Groq AI"""
         if self.data is None:
-            return "Please upload data first."
+            return "Please load data first."
         
         try:
             summary = self.get_data_summary()
+            symbol_name = self.symbol if self.symbol else "Stock"
             data_context = f"""
-            TSLA Stock Data Summary:
+            {symbol_name} Stock Data Summary:
             - Total trading days: {summary['total_days']}
             - Long signals: {summary['long_signals']}
             - Short signals: {summary['short_signals']}
@@ -558,40 +630,82 @@ class TSLADashboard:
             """
             
             prompt = f"""
-            Based on the following TSLA stock data, please answer this question: {question}
+            Based on the following {symbol_name} stock data, please answer this question: {question}
             
             {data_context}
             
             Please provide a detailed and accurate answer based on the data provided.
             """
             
-            if not self.genai_client:
-                self.setup_gemini()
+            if not self.groq_client:
+                self.setup_groq()
             
-            response = self.genai_client.generate_content(prompt)
-            return response.text
+            response = self.groq_client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                model="llama-3.1-8b-instant",
+                temperature=0.3,
+                max_tokens=1024,
+            )
+            return response.choices[0].message.content
             
         except Exception as e:
             return f"Error querying AI: {str(e)}"
 
 def main():
-    st.markdown('<h1 class="main-header">⚡ TSLA Professional Trading Dashboard</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">⚡ Professional Stock Trading Dashboard</h1>', unsafe_allow_html=True)
     
     dashboard = TSLADashboard()
     
     st.sidebar.title("Configuration")
-    uploaded_file = st.sidebar.file_uploader(
-        "Upload TSLA CSV Data",
-        type=['csv'],
-        help="Upload your TSLA stock data CSV file"
+    
+    # Choose data source
+    data_source = st.sidebar.radio(
+        "Select Data Source:",
+        ["Alpha Vantage API", "Upload CSV"],
+        help="Choose where to get your stock data"
     )
     
-    if uploaded_file is not None or st.session_state.data is None:
-        with st.spinner("Loading data..."):
-            data = dashboard.load_data(uploaded_file)
-            if data is not None:
-                st.sidebar.success("✅ Data loaded successfully!")
+    data_loaded = False
+    api_key = os.getenv("ALPHAVANTAGE_API_KEY")
+    
+    if data_source == "Alpha Vantage API":
+        if not api_key:
+            st.sidebar.error("⚠️ Alpha Vantage API key not found in .env file. Please add ALPHAVANTAGE_API_KEY to your .env file.")
+        else:
+            symbol = st.sidebar.text_input(
+                "Stock Symbol",
+                value="TSLA",
+                placeholder="e.g., AAPL, GOOGL, MSFT",
+                help="Enter the stock ticker symbol"
+            ).upper()
+            
+            if st.sidebar.button("📥 Fetch Data from API", use_container_width=True):
+                if not symbol:
+                    st.sidebar.error("⚠️ Please enter a stock symbol")
+                else:
+                    with st.spinner(f"Fetching {symbol} data from Alpha Vantage..."):
+                        data = dashboard.load_data(symbol=symbol, api_key=api_key)
+                        if data is not None:
+                            st.session_state.data = data
+                            st.sidebar.success(f"✅ {symbol} data loaded successfully!")
+                            data_loaded = True
     else:
+        uploaded_file = st.sidebar.file_uploader(
+            "Upload Stock Data CSV",
+            type=['csv'],
+            help="Upload your stock data CSV file (must contain Date, Open, High, Low, Close, Volume columns)"
+        )
+        
+        if uploaded_file is not None:
+            with st.spinner("Loading data from CSV..."):
+                data = dashboard.load_data(uploaded_file=uploaded_file)
+                if data is not None:
+                    st.session_state.data = data
+                    st.sidebar.success("✅ Data loaded successfully!")
+                    data_loaded = True
+    
+    # Use session data if available
+    if st.session_state.data is not None:
         dashboard.data = st.session_state.data
     
     # Add third tab for replay feature
@@ -599,10 +713,10 @@ def main():
     
     with tab1:
         if dashboard.data is not None:
-            st.markdown("""
+            st.markdown(f"""
             <div class="chart-container">
                 <div class="chart-header">
-                    <h3 class="chart-title">TSLA • Tesla Inc</h3>
+                    <h3 class="chart-title">{dashboard.symbol if dashboard.symbol else 'Stock'} • Stock Trading Chart</h3>
                 </div>
             """, unsafe_allow_html=True)
             
@@ -716,7 +830,7 @@ def main():
             st.markdown("""
             <div class="chart-container" style="text-align: center; padding: 60px;">
                 <h3 style="color: #a0aec0; margin-bottom: 20px;">📊 No Data Available</h3>
-                <p style="color: #68747f;">Upload your TSLA CSV file to begin analysis</p>
+                <p style="color: #68747f;">Select a data source in the sidebar and load your stock data to begin analysis</p>
             </div>
             """, unsafe_allow_html=True)
     
@@ -724,21 +838,21 @@ def main():
         st.subheader("🤖 AI-Powered Data Analysis")
         
         if dashboard.data is None:
-            st.warning("⚠️ Please upload data first to use AI features")
+            st.warning("⚠️ Please load data first to use AI features")
         else:
-            if dashboard.setup_gemini():
+            if dashboard.setup_groq():
                 st.success("✅ AI Assistant ready!")
                 
                 st.subheader("💡 Sample Questions")
                 sample_questions = [
-                    "How many days in 2023 was TSLA bullish?",
+                    "How many bullish days were in this period?",
                     "What was the highest closing price and when did it occur?",
                     "How many LONG vs SHORT signals were generated?",
                     "What was the average trading volume?",
-                    "Which month had the most volatile price movements?",
+                    "Which period had the most volatile price movements?",
                     "What percentage of days had neutral signals?",
                     "What was the biggest single-day price change?",
-                    "How did TSLA perform in Q4 compared to Q1?"
+                    "How did the price perform overall in this period?"
                 ]
                 
                 cols = st.columns(2)
@@ -752,7 +866,7 @@ def main():
                 st.markdown("---")
                 
                 st.subheader("💬 Ask Your Question")
-                user_question = st.text_input("Enter your question about the TSLA data:")
+                user_question = st.text_input("Enter your question about the stock data:")
                 
                 if st.button("🚀 Ask AI", type="primary"):
                     if user_question:
