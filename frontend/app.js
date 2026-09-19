@@ -39,6 +39,9 @@ async function initAuth() {
       if (session) {
         localStorage.removeItem('pulse-user');
         showView('dashboard');
+      } else if (document.querySelector('#dashboard-view').hidden === false) {
+        setAuthMode('signin');
+        showView('signup');
       }
     });
     const { data: { session } } = await supabaseClient.auth.getSession();
@@ -51,6 +54,12 @@ async function initAuth() {
 }
 
 function showView(view) {
+  if (view === 'dashboard' && !authSession) {
+    setAuthMode('signin');
+    showView('signup');
+    showToast('Sign in to open your workspace.', true);
+    return;
+  }
   document.querySelectorAll('.public-view').forEach((section) => { section.hidden = section.id !== `${view}-view`; });
   document.querySelector('.public-topbar').classList.toggle('dashboard-nav', view === 'dashboard');
   if (view === 'dashboard' && !state.chart) { makeChart(); loadPeriod(); }
@@ -60,6 +69,11 @@ function showView(view) {
 
 document.querySelectorAll('[data-view]').forEach((control) => control.addEventListener('click', () => showView(control.dataset.view)));
 $('#auth-switch').addEventListener('click', () => setAuthMode(authMode === 'signup' ? 'signin' : 'signup'));
+$('#logout-button').addEventListener('click', async () => {
+  if (!supabaseClient) return;
+  const { error } = await supabaseClient.auth.signOut();
+  if (error) showToast(error.message || 'Could not sign out.', true);
+});
 $('#signup-form').addEventListener('submit', (event) => {
   event.preventDefault();
   showAuthError('');
