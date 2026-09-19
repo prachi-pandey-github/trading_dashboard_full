@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pulse | Stock Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar public-topbar">
+      <nav class="public-nav" aria-label="Primary navigation"><a href="#home" data-view="home">Overview</a><a href="#signup" data-view="signup">Sign up</a><button class="nav-login" type="button" data-view="dashboard">Open workspace</button></nav>
+    </header>
+
+    <main id="home-view" class="public-view home-view">
+      <section class="home-hero">
+        <div class="hero-copy"><p class="eyebrow">A calmer way to read the market</p><h1>Find the signal<br><span>inside the noise.</span></h1><p class="hero-text">Pulse turns raw price action into a focused workspace for traders who want context before conviction.</p><div class="hero-actions"><button class="primary-button" type="button" data-view="signup">Create your account <span>↗</span></button><button class="text-button" type="button" data-view="dashboard">Explore the workspace</button></div><div class="hero-proof"><span class="proof-line"></span><span>Built for deliberate decisions</span></div></div>
+        <div class="hero-preview" aria-label="Pulse workspace preview"><div class="preview-top"><span class="preview-label">LIVE MARKET PULSE</span><span class="preview-live"><i></i> Tracking</span></div><div class="preview-symbol"><div><span class="preview-ticker">AAPL</span><span class="preview-company">Apple Inc.</span></div><strong>+4.82%</strong></div><div class="preview-chart"><span class="chart-line"></span><span class="chart-point point-one"></span><span class="chart-point point-two"></span><span class="chart-point point-three"></span><span class="chart-axis axis-one">09:30</span><span class="chart-axis axis-two">12:00</span><span class="chart-axis axis-three">16:00</span></div><div class="preview-stats"><span><small>Last price</small><b>$227.65</b></span><span><small>Signal</small><b class="teal-text">LONG</b></span><span><small>Volume</small><b>38.4M</b></span></div></div>
+      </section>
+      <section class="home-strip"><span>ONE VIEW, MORE CONTEXT</span><p>Track price. Test your read. Move with intention.</p><span>01 — 03</span></section>
+    </main>
+
+    <main id="signup-view" class="public-view signup-view" hidden>
+      <section class="signup-layout"><div class="signup-intro"><p class="eyebrow">Start with clarity</p><h1>Your market<br><span>workspace awaits.</span></h1><p>Save your watchlist, revisit signals, and make every session easier to understand.</p><div class="signup-note"><span>+</span><div><strong>Private by default</strong><small>Your account stays local until you connect a data provider.</small></div></div></div><form id="signup-form" class="signup-form"><div class="form-heading"><span class="form-step">01 / 01</span><h2 id="auth-title">Create your Pulse account</h2><p id="auth-description">It takes less than a minute.</p></div><label id="name-field" for="signup-name">Name<input id="signup-name" name="name" required autocomplete="name" placeholder="Alex Morgan"></label><label for="signup-email">Email<input id="signup-email" name="email" type="email" required autocomplete="email" placeholder="alex@example.com"></label><label for="signup-password">Password<input id="signup-password" name="password" type="password" minlength="8" required autocomplete="new-password" placeholder="8+ characters"></label><label class="check-label" id="terms-field"><input type="checkbox"> <span>I agree to the <a href="#terms">terms of use</a>.</span></label><p id="auth-error" class="auth-error" role="alert"></p><button class="primary-button form-submit" id="auth-submit" type="submit">Create account <span>↗</span></button><p class="form-switch"><span id="auth-switch-copy">Already have an account?</span> <button id="auth-switch" type="button">Sign in</button></p></form></section>
+    </main>
+    <main id="dashboard-view" class="workspace public-view" hidden>
+      <div class="dashboard-topbar"><div class="market-status"><span class="status-dot"></span> Market workspace <span class="status-divider">/</span> <span id="last-updated">Waiting for data</span></div><button class="icon-button" id="refresh-button" title="Refresh market data" aria-label="Refresh market data">↻</button></div>
+      <section class="page-heading">
+        <div>
+          <p class="eyebrow">Market intelligence</p>
+          <h1><span id="symbol-name">No symbol</span> <span class="muted">/ daily view</span></h1>
+        </div>
+        <div class="data-actions">
+          <form id="symbol-form" class="symbol-form">
+            <label for="symbol-input">Stock symbol</label>
+            <div class="symbol-row"><input id="symbol-input" maxlength="12" autocomplete="off" placeholder="TSLA"><button type="submit" id="symbol-submit">Fetch</button></div>
+          </form>
+          <label class="upload-button" for="csv-upload">Import CSV <span>↑</span><input id="csv-upload" type="file" accept=".csv"></label>
+        </div>
+      </section>
+
+      <section class="metrics-grid" aria-label="Market overview">
+        <article class="metric"><span class="metric-label">Trading days</span><strong id="metric-days">—</strong><span class="metric-note" id="metric-period">ALL period</span></article>
+        <article class="metric"><span class="metric-label">Average close</span><strong id="metric-average">—</strong><span class="metric-note">Across selected period</span></article>
+        <article class="metric"><span class="metric-label">Signal balance</span><strong id="metric-signals">—</strong><span class="metric-note"><span class="positive" id="metric-long">—</span> long <span class="negative" id="metric-short">—</span> short</span></article>
+        <article class="metric metric-highlight"><span class="metric-label">Price change</span><strong id="metric-change">—</strong><span class="metric-note" id="metric-range">High — / Low —</span></article>
+      </section>
+
+      <section class="content-grid">
+        <div class="primary-column">
+          <article class="panel chart-panel">
+            <div class="panel-heading">
+              <div><span class="panel-kicker">Price action</span><h2><span id="chart-symbol">No symbol</span> performance</h2></div>
+              <div class="periods" role="group" aria-label="Time period">
+                <button class="period-button" data-period="1D">1D</button><button class="period-button" data-period="1W">1W</button><button class="period-button" data-period="1M">1M</button><button class="period-button" data-period="3M">3M</button><button class="period-button" data-period="1Y">1Y</button><button class="period-button" data-period="3Y">3Y</button><button class="period-button active" data-period="ALL">ALL</button>
+              </div>
+            </div>
+            <div id="chart" class="chart" aria-label="Candlestick price chart"></div>
+            <div class="chart-legend"><span><i class="legend-candle up"></i> Up day</span><span><i class="legend-candle down"></i> Down day</span><span><i class="legend-signal long"></i> Long</span><span><i class="legend-signal short"></i> Short</span></div>
+          </article>
+
+          <article class="panel table-panel">
+            <div class="panel-heading compact"><div><span class="panel-kicker">Activity log</span><h2>Recent sessions</h2></div><span class="row-count" id="row-count">— rows</span></div>
+            <div class="table-wrap"><table><thead><tr><th>Date</th><th>Close</th><th>Range</th><th>Volume</th><th>Signal</th></tr></thead><tbody id="data-table"></tbody></table></div>
+          </article>
+        </div>
+
+        <aside class="side-column">
+          <article class="panel ai-panel">
+            <div class="ai-heading"><span class="ai-orbit">✦</span><div><span class="panel-kicker">Signal desk</span><h2>Ask your data</h2></div></div>
+            <p class="ai-copy">Use the live dataset to surface patterns, momentum, and signal context.</p>
+            <div class="question-list"><button class="question-chip">How many bullish days were in this period?</button><button class="question-chip">What was the highest closing price?</button><button class="question-chip">How many LONG vs SHORT signals?</button></div>
+            <form id="ask-form" class="ask-form"><label for="question">Ask a question</label><div class="ask-row"><input id="question" autocomplete="off" placeholder="e.g. What changed this week?"><button type="submit" aria-label="Ask AI">→</button></div></form>
+            <div class="chat-history" id="chat-history"><div class="empty-chat">Your analysis will appear here.</div></div>
+          </article>
+
+          <article class="panel replay-panel">
+            <div class="panel-heading compact"><div><span class="panel-kicker">Replay mode</span><h2>Read the tape</h2></div><span class="replay-icon">▶</span></div>
+            <p class="replay-copy">Step through historical sessions one candle at a time.</p>
+            <div class="replay-progress"><div id="replay-bar"></div></div><div class="replay-meta"><span id="replay-label">Ready</span><span id="replay-count">0 / 0</span></div>
+            <div class="replay-controls"><select id="replay-speed" aria-label="Replay speed"><option value="1200">0.5×</option><option value="700" selected>1×</option><option value="350">2×</option><option value="140">5×</option><option value="70">10×</option></select><button class="control-button" id="replay-toggle">Start replay</button><button class="reset-button" id="replay-reset" title="Reset replay" aria-label="Reset replay">↺</button></div>
+          </article>
+        </aside>
+      </section>
+    </main>
+    <div id="toast" class="toast" role="status"></div>
+  </div>
+</body>
+</html>

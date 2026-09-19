@@ -421,6 +421,8 @@ class TSLADashboard:
             start_date = end_date - timedelta(days=90)
         elif period == '1Y':
             start_date = end_date - timedelta(days=365)
+        elif period == '3Y':
+            start_date = end_date - timedelta(days=1095)
         else:
             return self.data
         
@@ -603,16 +605,17 @@ class TSLADashboard:
         
         return summary
     
-    def query_data_with_ai(self, question):
+    def query_data_with_ai(self, question, time_period='ALL'):
         """Query data using Groq AI"""
         if self.data is None:
             return "Please load data first."
         
         try:
-            summary = self.get_data_summary()
+            filtered_data = self.filter_data_by_period(time_period)
+            summary = self.get_data_summary(time_period)
             symbol_name = self.symbol if self.symbol else "Stock"
             data_context = f"""
-            {symbol_name} Stock Data Summary:
+            {symbol_name} Stock Data Summary for the {time_period} period:
             - Total trading days: {summary['total_days']}
             - Long signals: {summary['long_signals']}
             - Short signals: {summary['short_signals']}
@@ -623,18 +626,18 @@ class TSLADashboard:
             - Total volume traded: {summary['total_volume']:,}
             - Overall price change: {summary['price_change']:.2f}%
             
-            Date range: {self.data['Date'].min().strftime('%Y-%m-%d')} to {self.data['Date'].max().strftime('%Y-%m-%d')}
+            Date range for this period: {filtered_data['Date'].min().strftime('%Y-%m-%d')} to {filtered_data['Date'].max().strftime('%Y-%m-%d')}
             
             Sample data points:
-            {self.data.head().to_string()}
+            {filtered_data.head().to_string()}
             """
             
             prompt = f"""
-            Based on the following {symbol_name} stock data, please answer this question: {question}
+            Based only on the following {symbol_name} stock data for the {time_period} period, please answer this question: {question}
             
             {data_context}
             
-            Please provide a detailed and accurate answer based on the data provided.
+            Answer questions briefly and directly. Give only the requested value with a short label. No explanations unless asked.
             """
             
             if not self.groq_client:
@@ -642,7 +645,7 @@ class TSLADashboard:
             
             response = self.groq_client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
-                model="llama-3.1-8b-instant",
+                model=os.getenv("GROQ_MODEL", "openai/gpt-oss-20b"),
                 temperature=0.3,
                 max_tokens=1024,
             )
@@ -860,7 +863,7 @@ def main():
                     col = cols[i % 2]
                     if col.button(question, key=f"sample_{i}"):
                         with st.spinner("🤔 AI is thinking..."):
-                            response = dashboard.query_data_with_ai(question)
+                            response = dashboard.query_data_with_ai(question, st.session_state.time_period)
                             st.session_state.chat_history.append({"question": question, "answer": response})
                 
                 st.markdown("---")
@@ -871,7 +874,7 @@ def main():
                 if st.button("🚀 Ask AI", type="primary"):
                     if user_question:
                         with st.spinner("🤔 AI is analyzing..."):
-                            response = dashboard.query_data_with_ai(user_question)
+                            response = dashboard.query_data_with_ai(user_question, st.session_state.time_period)
                             st.session_state.chat_history.append({"question": user_question, "answer": response})
                     else:
                         st.warning("Please enter a question first!")

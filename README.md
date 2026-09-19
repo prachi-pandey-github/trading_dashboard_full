@@ -58,6 +58,7 @@ A comprehensive stock analysis dashboard built with Streamlit, featuring Trading
     - Replace the placeholders in `.env` file:
     ```
     GROQ_API_KEY=YOUR_ACTUAL_GROQ_API_KEY
+    GROQ_MODEL=openai/gpt-oss-20b
     ALPHAVANTAGE_API_KEY=YOUR_ACTUAL_ALPHAVANTAGE_API_KEY
     ```
 
@@ -68,6 +69,33 @@ A comprehensive stock analysis dashboard built with Streamlit, featuring Trading
 
 5. **Access the dashboard**
     - Open your browser and navigate to `http://localhost:8501`
+
+## 🌐 Separate HTML Frontend
+
+The original Streamlit app remains available and unchanged. A separate responsive frontend is served by a lightweight FastAPI adapter that delegates data filtering, summaries, and Groq analysis to the existing `TSLADashboard` class.
+
+### Run the frontend
+
+```bash
+uvicorn backend.api:app --reload
+```
+
+Open `http://localhost:8000`. The adapter serves `frontend/` and exposes `/api/data`, `/api/summary`, `/api/data/upload`, `/api/data/alphavantage`, `/api/ask`, and `/api/auth/config`. Enter a ticker in the frontend's **Stock symbol** field to fetch Alpha Vantage data using `ALPHAVANTAGE_API_KEY` from `.env`.
+
+### Supabase authentication
+
+Copy `.env.example` to `.env` and set `SUPABASE_URL` and `SUPABASE_ANON_KEY` from your Supabase project's API settings. Enable Email authentication in Supabase Auth. The frontend uses Supabase's browser client for sign-up, sign-in, email confirmation, and persisted sessions; only the public anon key is exposed to the browser. Never put the `service_role` key in `.env` for this app.
+
+### Run both experiences
+
+Use separate terminals if you want both interfaces available:
+
+```bash
+streamlit run eg.py
+uvicorn backend.api:app --reload --port 8000
+```
+
+The HTML frontend owns presentation and browser replay state. The API layer only adapts request/response formats and reuses the existing Python dashboard logic; it does not replace or modify the Streamlit app.
 
 ## 📁 Data Sources
 
@@ -151,6 +179,12 @@ A sample `TSLA_data.csv` is included in the `data/` folder for testing.
 ```
 trading_dashboard/
 ├── eg.py                 # Main Streamlit application
+├── backend/
+│   └── api.py            # FastAPI adapter for the separate frontend
+├── frontend/
+│   ├── index.html        # Frontend structure
+│   ├── styles.css        # Responsive visual system
+│   └── app.js            # Chart, controls, replay, and API client
 ├── requirements.txt      # Python dependencies
 ├── .env                  # API keys (not committed)
 ├── .gitignore           # Git ignore rules
