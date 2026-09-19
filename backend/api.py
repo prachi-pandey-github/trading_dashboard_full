@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-from backend.eg import TSLADashboard
+from eg import TSLADashboard
 
 
 ROOT = Path(__file__).resolve().parent.parent
