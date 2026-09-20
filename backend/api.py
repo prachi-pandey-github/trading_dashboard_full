@@ -12,7 +12,10 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-from eg import TSLADashboard
+try:
+    from backend.eg import TSLADashboard
+except ModuleNotFoundError:
+    from eg import TSLADashboard
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -161,7 +164,8 @@ def load_alphavantage(request: SymbolRequest) -> dict[str, Any]:
 
     loaded = dashboard.load_data(symbol=symbol, api_key=api_key)
     if loaded is None or loaded.empty:
-        raise HTTPException(status_code=502, detail=f"No data was returned for {symbol}")
+        reason = dashboard.last_data_error or "Alpha Vantage returned an empty dataset."
+        raise HTTPException(status_code=502, detail=f"Could not load {symbol}: {reason}")
 
     dashboard.data = _normalise_data(loaded)
     dashboard.symbol = symbol

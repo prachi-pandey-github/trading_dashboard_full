@@ -255,6 +255,7 @@ class TSLADashboard:
         self.data = None
         self.groq_client = None
         self.symbol = None
+        self.last_data_error = None
         
     def setup_groq(self):
         """Setup Groq AI client"""
@@ -271,6 +272,7 @@ class TSLADashboard:
     
     def fetch_data_from_alphavantage(self, symbol, api_key):
         """Fetch stock data from Alpha Vantage API"""
+        self.last_data_error = None
         try:
             url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&outputsize=compact&apikey={api_key}'
             
@@ -278,18 +280,22 @@ class TSLADashboard:
             data = response.json()
             
             if 'Error Message' in data:
+                self.last_data_error = data['Error Message']
                 st.error(f"API Error: {data['Error Message']}")
                 return None
             
             if 'Information' in data:
+                self.last_data_error = data['Information']
                 st.error(f"API Information: {data['Information']}")
                 return None
             
             if 'Note' in data:
+                self.last_data_error = data['Note']
                 st.warning("API call frequency limit reached. Please wait a minute before trying again.")
                 return None
             
             if 'Time Series (Daily)' not in data:
+                self.last_data_error = "Alpha Vantage returned no daily time series."
                 st.error(f"No data found for the given symbol. The API response was: {data}")
                 return None
             
@@ -325,6 +331,7 @@ class TSLADashboard:
             return df
             
         except Exception as e:
+            self.last_data_error = f"Alpha Vantage request failed: {str(e)}"
             st.error(f"Error fetching data from Alpha Vantage: {str(e)}")
             return None
     
